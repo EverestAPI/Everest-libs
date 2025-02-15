@@ -19,3 +19,9 @@
 [submodule "source/SDL_GameControllerDB"]
 	path = source/SDL_GameControllerDB
 	url = https://github.com/mdqinc/SDL_GameControllerDB
+[submodule "source/MonoMod"]
+	path = source/MonoMod
+	url = https://github.com/MonoMod/MonoMod/
+[submodule "source/NLua"]
+	path = source/NLua
+	url = https://github.com/EverestAPI/NLua/
