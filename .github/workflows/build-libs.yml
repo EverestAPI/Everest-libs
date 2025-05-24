@@ -279,17 +279,6 @@ jobs:
 
         make
 
-    # FNA (Only built on Linux, due to being platform agnostic)
-    - uses: actions/setup-dotnet@v4
-      if: ${{ matrix.platform == 'linux' }}
-      with:
-        dotnet-version: '8'
-
-    - name: Build FNA
-      if: ${{ matrix.platform == 'linux' }}
-      working-directory: source/FNA
-      run: dotnet build -c ${{ env.BUILD_TYPE }} FNA.NetFramework.csproj
-
     # Upload
     - name: Copy binaries (Windows)
       if: ${{ matrix.platform == 'windows' }}
@@ -312,8 +301,6 @@ jobs:
     - name: Copy binaries (Linux)
       if: ${{ matrix.platform == 'linux' }}
       run: |
-        cp source/FNA/bin/${{ env.BUILD_TYPE }}/net4.0/FNA.dll FNA.dll
-        cp source/FNA/bin/${{ env.BUILD_TYPE }}/net4.0/FNA.pdb FNA.pdb
         cp ${{ env.SDL2_DIR }}/lib/libSDL2-2.0.so.0 libSDL2-2.0.so.0
         cp source/FNA/lib/FAudio/build/libFAudio.so.0 libFAudio.so.0
         cp source/FNA/lib/FNA3D/build/libFNA3D.so.0 libFNA3D.so.0
@@ -349,12 +336,70 @@ jobs:
       with:
         name: fnalibs-linux-x86_64
         path: |
-          FNA.dll
-          FNA.pdb
           libSDL2-2.0.so.0
           libFAudio.so.0
           libFNA3D.so.0
           libtheorafile.so
+
+  build-managed-libs:
+    name: Managed Libraries
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: sh
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: |
+          source
+          patches
+        submodules: recursive
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: source/MonoMod/global.json
+
+    - name: Install SN
+      run: sudo apt install -y mono-devel
+
+    - name: Build MonoMod
+      working-directory: source/MonoMod
+      run: |
+        dotnet publish -c ${{ env.BUILD_TYPE }} -f ${{ env.NET_FRAMEWORK }} src/MonoMod.Utils/MonoMod.Utils.csproj
+        dotnet publish -c ${{ env.BUILD_TYPE }} -f ${{ env.NET_FRAMEWORK }} src/MonoMod.Patcher/MonoMod.Patcher.csproj
+        dotnet publish -c ${{ env.BUILD_TYPE }} -f ${{ env.NET_FRAMEWORK }} src/MonoMod.RuntimeDetour/MonoMod.RuntimeDetour.csproj
+        dotnet publish -c ${{ env.BUILD_TYPE }} -f ${{ env.NET_FRAMEWORK }} src/MonoMod.RuntimeDetour.HookGen/MonoMod.RuntimeDetour.HookGen.csproj
+
+    - name: Build NLua
+      working-directory: source/NLua
+      run: dotnet publish -c ${{ env.BUILD_TYPE }} build/net6.0/NLua.net6.0.csproj
+
+    - name: Build FNA
+      working-directory: source/FNA
+      run: dotnet build -c ${{ env.BUILD_TYPE }} FNA.NetFramework.csproj
+
+    - name: Copy artifacts
+      run: |
+        MM_DIR=$(echo "${{ env.BUILD_TYPE }} ${{ env.NET_FRAMEWORK }}" | awk '{print tolower($1) "_" $2}')
+        mkdir all_artifacts
+        cp source/MonoMod/artifacts/publish/MonoMod.Utils/$MM_DIR/* all_artifacts
+        cp source/MonoMod/artifacts/publish/MonoMod.Patcher/$MM_DIR/* all_artifacts
+        cp source/MonoMod/artifacts/publish/MonoMod.RuntimeDetour/$MM_DIR/* all_artifacts
+        cp source/MonoMod/artifacts/publish/MonoMod.RuntimeDetour.HookGen/$MM_DIR/* all_artifacts
+
+        cp -r source/NLua/lib/${{ env.BUILD_TYPE }}/net6.0/publish/* all_artifacts
+
+        cp source/FNA/bin/${{ env.BUILD_TYPE }}/net4.0/FNA.dll all_artifacts
+        cp source/FNA/bin/${{ env.BUILD_TYPE }}/net4.0/FNA.pdb all_artifacts
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: managed-libraries
+        path: all_artifacts
 
   build-piton:
     strategy:
@@ -430,7 +475,7 @@ jobs:
   generate-lib-ext:
     name: Generate lib-ext
     runs-on: ubuntu-latest
-    needs: [build-fnalibs, build-piton]
+    needs: [build-fnalibs, build-managed-libs, build-piton]
 
     steps:
       - uses: actions/checkout@v4
@@ -472,6 +517,8 @@ jobs:
           mkdir -p ../lib-ext/lib64-win-x64
           mkdir -p ../lib-ext/lib64-osx
           mkdir -p ../lib-ext/lib64-linux
+
+          mkdir -p ../lib-ext/piton
          
           ### Vendored files
           cp README_lib-ext.md ../lib-ext/README.md
@@ -492,8 +539,8 @@ jobs:
           pushd ../lib-ext
           
           ### Vanilla overrides
-          cp ../binaries/fnalibs-linux-x86_64/FNA.dll lib-vanilla
-          cp ../binaries/fnalibs-linux-x86_64/FNA.pdb lib-vanilla
+          cp ../binaries/managed-libraries/FNA.dll lib-vanilla
+          cp ../binaries/managed-libraries/FNA.pdb lib-vanilla
 
           # Windows x86
           cp ../binaries/fnalibs-windows-i686/FNA3D.dll lib-vanilla
@@ -516,8 +563,10 @@ jobs:
           cp ../binaries/fnalibs-linux-x86_64/libtheorafile.so lib-vanilla/lib64
 
           ### Everest Libraries
-          mv ../binaries/fnalibs-linux-x86_64/FNA.dll .
-          mv ../binaries/fnalibs-linux-x86_64/FNA.pdb .
+          mv ../binaries/managed-libraries/FNA.dll .
+          mv ../binaries/managed-libraries/FNA.pdb .
+          
+          mv ../binaries/managed-libraries/* .
 
           mv ../binaries/fnalibs-windows-i686/* lib64-win-x86
           mv ../binaries/fnalibs-windows-x86_64/* lib64-win-x64
@@ -530,7 +579,10 @@ jobs:
           cp ../binaries/discord_game_sdk/lib/x86_64/discord_game_sdk.so lib64-linux/libdiscord_game_sdk.so
 
           ### Piton
-          mv ../binaries/piton-apphosts piton
+          mv ../binaries/piton-apphosts-i686-pc-windows-msvc/* piton
+          mv ../binaries/piton-apphosts-x86_64-pc-windows-msvc/* piton
+          mv ../binaries/piton-apphosts-x86_64-unknown-linux-gnu/* piton
+          mv ../binaries/piton-apphosts-x86_64-apple-darwin/* piton
 
       - name: Display the new structure
         run: ls -R ../lib-ext

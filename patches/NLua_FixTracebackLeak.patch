@@ -1,0 +1,113 @@
+From cafdb0330111df64e008d74c679abc7edf951ef6 Mon Sep 17 00:00:00 2001
+From: Wartori54 <wartori54@gmail.com>
+Date: Wed, 23 Oct 2024 23:43:40 +0200
+Subject: [PATCH] Remove debug.traceback references from stack after PCall
+ with UseTraceback enabled
+
+---
+ src/Lua.cs | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+diff --git a/src/Lua.cs b/src/Lua.cs
+index ad3d107..b622b0e 100644
+--- a/src/Lua.cs
++++ b/src/Lua.cs
+@@ -496,10 +496,12 @@ namespace NLua
+                 ThrowExceptionFromError(oldTop);
+ 
+             int errorFunctionIndex = 0;
++            int errorFunctionAbsoluteIndex = -1;
+ 
+             if (UseTraceback)
+             {
+                 errorFunctionIndex = PushDebugTraceback(_luaState, 0);
++                errorFunctionAbsoluteIndex = _luaState.GetTop() + errorFunctionIndex + 1;
+                 oldTop++;
+             }
+ 
+@@ -512,6 +514,9 @@ namespace NLua
+             }
+             finally
+             {
++                if (errorFunctionAbsoluteIndex != -1)
++                    _luaState.Remove(errorFunctionAbsoluteIndex);
++
+                 _executing = false;
+             }
+         }
+@@ -531,10 +536,12 @@ namespace NLua
+                 ThrowExceptionFromError(oldTop);
+ 
+             int errorFunctionIndex = 0;
++            int errorFunctionAbsoluteIndex = -1;
+ 
+             if (UseTraceback)
+             {
+                 errorFunctionIndex = PushDebugTraceback(_luaState, 0);
++                errorFunctionAbsoluteIndex = _luaState.GetTop() + errorFunctionIndex + 1;
+                 oldTop++;
+             }
+ 
+@@ -547,6 +554,9 @@ namespace NLua
+             }
+             finally
+             {
++                if (errorFunctionAbsoluteIndex != -1)
++                    _luaState.Remove(errorFunctionAbsoluteIndex);
++
+                 _executing = false;
+             }
+         }
+@@ -565,9 +575,11 @@ namespace NLua
+             _executing = true;
+ 
+             int errorFunctionIndex = 0;
++            int errorFunctionAbsoluteIndex = -1;
+             if (UseTraceback)
+             {
+                 errorFunctionIndex = PushDebugTraceback(_luaState, 0);
++                errorFunctionAbsoluteIndex = _luaState.GetTop() + errorFunctionIndex + 1;
+                 oldTop++;
+             }
+ 
+@@ -580,6 +592,9 @@ namespace NLua
+             }
+             finally
+             {
++                if (errorFunctionAbsoluteIndex != -1)
++                    _luaState.Remove(errorFunctionAbsoluteIndex);
++
+                 _executing = false;
+             }
+         }
+@@ -820,12 +835,14 @@ namespace NLua
+ 
+             _executing = true;
+ 
++            int errfunctionAbs = -1;
+             try
+             {
+                 int errfunction = 0;
+                 if (UseTraceback)
+                 {
+                     errfunction = PushDebugTraceback(_luaState, nArgs);
++                    errfunctionAbs = _luaState.GetTop() + errfunction + 1;
+                     oldTop++;
+                 }
+ 
+@@ -835,6 +852,12 @@ namespace NLua
+             }
+             finally
+             {
++                if (errfunctionAbs != -1)
++                {
++                    _luaState.Remove(errfunctionAbs);
++                    oldTop--;
++                }
++
+                 _executing = false;
+             }
+ 
+-- 
+2.49.0
+
