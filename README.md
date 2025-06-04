@@ -16,6 +16,8 @@ These libraries are open source and are built in CI.
 - MoltenVK `1.2.11`
 - Vulkan Loader `1.3.296`
 - Piton [21c7868](https://github.com/Popax21/Piton/tree/21c7868d06007f0c5e7d9030a0109fe892df1bf3)
+- NLua `1.6.2` with patches
+- MonoMod [be053cf](https://github.com/MonoMod/MonoMod/tree/be053cf084f320a0cd5b516288e1e332b855471d)
 
 ### Closed-Source Libraries
 These libraries are closed source and cannot be _built_ in CI.  
