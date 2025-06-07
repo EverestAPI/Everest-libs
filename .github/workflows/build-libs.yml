@@ -279,6 +279,14 @@ jobs:
 
         make
 
+    # To downgrade Celeste builds that target sdl3 to sdl2, on linux specifically, we need to replace libfmod_SDL.so, since it targets SDL3
+    - name: Build FMOD_SDL (linux)
+      if: ${{ matrix.platform == 'linux' }}
+      working-directory: source/FMOD_SDL_BUILD_DEPS
+      run: |
+        make -e SDL2_PREFIX=${{ env.SDL2_DIR }}
+
+
     # FNA (Only built on Linux, due to being platform agnostic)
     - uses: actions/setup-dotnet@v4
       if: ${{ matrix.platform == 'linux' }}
@@ -318,6 +326,7 @@ jobs:
         cp source/FNA/lib/FAudio/build/libFAudio.so.0 libFAudio.so.0
         cp source/FNA/lib/FNA3D/build/libFNA3D.so.0 libFNA3D.so.0
         cp source/FNA/lib/Theorafile/libtheorafile.so libtheorafile.so
+        cp source/FMOD_SDL_BUILD_DEPS/libfmod_SDL.so libfmod_SDL.so
 
     - name: Upload Artifacts (Windows)
       uses: actions/upload-artifact@v4
@@ -355,6 +364,7 @@ jobs:
           libFAudio.so.0
           libFNA3D.so.0
           libtheorafile.so
+          libfmod_SDL.so
 
   build-piton:
     strategy:
