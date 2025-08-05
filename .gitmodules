@@ -22,3 +22,6 @@
 [submodule "source/FMOD_SDL"]
 	path = source/FMOD_SDL
 	url = https://github.com/flibitijibibo/FMOD_SDL
+[submodule "source/Steamworks.NET"]
+	path = source/Steamworks.NET
+	url = https://github.com/rlabrecque/Steamworks.NET

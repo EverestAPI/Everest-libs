@@ -440,10 +440,35 @@ jobs:
         name: piton-apphosts-${{ matrix.target }}
         path: source/Piton/apphost/${{ matrix.lib_name }}
 
+  build-steamworks-net:
+    name: Steamworks.NET
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        sparse-checkout: source/Steamworks.NET
+        submodules: true
+
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8'
+
+    - name: Build Steamworks.NET
+      working-directory: source/Steamworks.NET/Standalone
+      run: dotnet build -t:BatchBuild Steamworks.NET.Standard.sln
+
+    - name: Upload Steamworks.NET binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: steamworks-net
+        path: source/Steamworks.NET/Standalone/bin/x*
+
+
   generate-lib-ext:
     name: Generate lib-ext
     runs-on: ubuntu-latest
-    needs: [build-fnalibs, build-piton]
+    needs: [build-fnalibs, build-piton, build-steamworks-net]
 
     steps:
       - uses: actions/checkout@v4
@@ -485,19 +510,24 @@ jobs:
           mkdir -p ../lib-ext/lib64-win-x64
           mkdir -p ../lib-ext/lib64-osx
           mkdir -p ../lib-ext/lib64-linux
-         
+
           ### Vendored files
           cp README_lib-ext.md ../lib-ext/README.md
           cp source/SDL_GameControllerDB/gamecontrollerdb.txt ../lib-ext
 
           # Windows x86
-          cp binaries/steamworks/windows-x86/CSteamworks.dll ../lib-ext/lib64-win-x86
+          cp source/Steamworks.NET/com.rlabrecque.steamworks.net/Plugins/steam_api.dll ../lib-ext/lib64-win-x86
 
           # Windows x64
-          cp binaries/steamworks/windows-x64/CSteamworks.dll ../lib-ext/lib64-win-x64
-          cp binaries/steamworks/windows-x64/steam_api64.dll ../lib-ext/lib64-win-x64
+          cp source/Steamworks.NET/com.rlabrecque.steamworks.net/Plugins/steam_api64.dll ../lib-ext/lib64-win-x64
           cp binaries/fmod/windows-x64/fmod64.dll ../lib-ext/lib64-win-x64
           cp binaries/fmod/windows-x64/fmodstudio64.dll ../lib-ext/lib64-win-x64
+
+          # OSX
+          cp source/Steamworks.NET/com.rlabrecque.steamworks.net/Plugins/steam_api.bundle/Contents/MacOS/libsteam_api.dylib ../lib-ext/lib64-osx
+
+          # Linux x64
+          cp source/Steamworks.NET/com.rlabrecque.steamworks.net/Plugins/libsteam_api.so ../lib-ext/lib64-linux
 
           # Piton
           cp piton-runtime.yaml ../lib-ext/piton-runtime.yaml
@@ -541,6 +571,11 @@ jobs:
           cp ../binaries/discord_game_sdk/lib/x86_64/discord_game_sdk.dll lib64-win-x64
           cp ../binaries/discord_game_sdk/lib/x86_64/discord_game_sdk.dylib lib64-osx/libdiscord_game_sdk.dylib
           cp ../binaries/discord_game_sdk/lib/x86_64/discord_game_sdk.so lib64-linux/libdiscord_game_sdk.so
+
+          cp ../binaries/steamworks-net/x86/Windows/netstandard2.1/Steamworks.NET.dll lib64-win-x86
+          cp ../binaries/steamworks-net/x64/Windows/netstandard2.1/Steamworks.NET.dll lib64-win-x64
+          cp ../binaries/steamworks-net/x64/OSX-Linux/netstandard2.1/Steamworks.NET.dll lib64-osx
+          cp ../binaries/steamworks-net/x64/OSX-Linux/netstandard2.1/Steamworks.NET.dll lib64-linux
 
           ### Piton
           mv ../binaries/piton-apphosts piton
