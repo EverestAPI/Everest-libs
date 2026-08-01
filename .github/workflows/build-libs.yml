@@ -17,7 +17,6 @@ permissions:
 
 env:
   BUILD_TYPE: Release
-  NET_FRAMEWORK: net7.0
 
 jobs:
   build-fnalibs:
@@ -45,7 +44,7 @@ jobs:
             cmake_flags:
 
           - name: macOS x64
-            os: macos-13
+            os: macos-15-intel
             platform: macos
             cmake_flags: --verbose --parallel
 
@@ -217,7 +216,8 @@ jobs:
           -DSDL2_INCLUDE_DIRS=${{ env.SDL2_DIR }}/include/SDL2 \
           -DSDL2_LIBRARIES=${{ env.SDL2_LIB }} \
           -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded$<$<CONFIG:Debug>:Debug>" \
-          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 # Workaround to avoid upgrading the submodule for now
 
     - name: Build FNA3D
       working-directory: source/FNA/lib/FNA3D
@@ -240,7 +240,8 @@ jobs:
           -DSDL2_INCLUDE_DIRS=${{ env.SDL2_DIR }}/include/SDL2 \
           -DSDL2_LIBRARIES=${{ env.SDL2_LIB }} \
           -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded$<$<CONFIG:Debug>:Debug>" \
-          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 # Workaround to avoid upgrading the submodule for now
       
     - name: Build FAudio
       working-directory: source/FNA/lib/FAudio
@@ -396,7 +397,7 @@ jobs:
             container: quay.io/pypa/manylinux_2_28_x86_64 # See https://kobzol.github.io/rust/ci/2021/05/07/building-rust-binaries-in-ci-that-work-with-older-glibc.html
 
           - name: macOS x64
-            os: macos-13
+            os: macos-15-intel
             toolchain: 1.86.0-x86_64-apple-darwin
             target: x86_64-apple-darwin
             ui: gui
