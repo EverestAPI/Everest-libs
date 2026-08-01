@@ -1,4 +1,4 @@
-# Latest LTS as of April 19th 2025
+# Latest LTS as of August 1st 2026
 windows-x86:
   version: 10.0.10
   download: https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.10/dotnet-runtime-10.0.10-win-x86.zip
