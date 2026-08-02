@@ -8,14 +8,14 @@ Some libraries have patches applied to them, to account for Everest-specific nee
 ### Open-Source Libraries
 These libraries are open source and are built in CI.
 
-- SDL2 `2.28.5`
+- SDL2 `2.30.12`
 - FNA `24.01`
 - FNA3D `24.01` with patches
 - FAudio `24.01`
 - Theorafile [48d74af](https://github.com/FNA-XNA/Theorafile/tree/48d74afcbf838fe95ca56cec142efae07bb56f65)
 - MoltenVK `1.2.11`
 - Vulkan Loader `1.3.296`
-- Piton [21c7868](https://github.com/Popax21/Piton/tree/21c7868d06007f0c5e7d9030a0109fe892df1bf3)
+- Piton [1ff7c16](https://github.com/Popax21/Piton/tree/1ff7c16461d61d0178c69c0abed05b7f9e25d366)
 - FMOD_SDL [1f021ce](https://github.com/flibitijibibo/FMOD_SDL/tree/1f021ceb6cc13e3fe93e53e0f87d2673b24e54b7)
 - Steamworks.NET [`2024.8.0`](https://github.com/rlabrecque/Steamworks.NET/tree/2024.8.0)
 
