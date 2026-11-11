@@ -22,3 +22,9 @@ macos-x86_64:
   download: https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.10/dotnet-runtime-10.0.10-osx-x64.tar.gz
   download-sha512: 4269fde5d17bee092f47fb63387c0bb1ab58b21d4af8eb0ead118b51d677fc7dada9b8f46cf3d1e25449c07f7e0350938cd741e882ed43bf6ab1541dccd489da
   download-format: targz
+
+macos-aarch64:
+  version: 8.0.15
+  download: https://builds.dotnet.microsoft.com/dotnet/Runtime/8.0.15/dotnet-runtime-8.0.15-osx-arm64.tar.gz
+  download-sha512: 7e70cd78febcf958c2094de0c722f8338a633463685aa23b5949d01addb48822dfacc53ed9c4d5f5fce286caf36587c118c24b73a901decea769ca6cad040df4
+  download-format: targz
