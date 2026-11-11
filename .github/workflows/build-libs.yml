@@ -43,8 +43,8 @@ jobs:
             container: debian:buster # Required for GLIBC v2.28
             cmake_flags:
 
-          - name: macOS x64
-            os: macos-15-intel
+          - name: macOS Universal
+            os: macos-latest
             platform: macos
             cmake_flags: --verbose --parallel
 
@@ -54,6 +54,7 @@ jobs:
 
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.12
+      CMAKE_OSX_ARCHITECTURES: ${{ matrix.platform == 'macos' && 'x86_64;arm64' || '' }}
 
     defaults:
       run:
@@ -253,11 +254,24 @@ jobs:
       working-directory: source/FNA/lib/Theorafile
       shell: msys2 {0}
       run: mingw32-make
-      
-    - name: Build Theorafile (macOS & Linux)
-      if: ${{ matrix.platform != 'windows' }}
+
+    - name: Build Theorafile (Linux)
+      if: ${{ matrix.platform == 'linux' }}
       working-directory: source/FNA/lib/Theorafile
       run: make
+
+    - name: Build Theorafile (macOS)
+      if: ${{ matrix.platform == 'macos' }}
+      working-directory: source/FNA/lib/Theorafile
+      run: |
+        make clean
+        make CC="clang -target x86_64-apple-darwin"
+        mv libtheorafile.dylib libtheorafile_x64.dylib
+        make clean
+        make CC="clang -target arm64-apple-darwin"
+        mv libtheorafile.dylib libtheorafile_arm64.dylib
+        lipo -create libtheorafile_x64.dylib libtheorafile_arm64.dylib -output libtheorafile.dylib
+        rm libtheorafile_x64.dylib libtheorafile_arm64.dylib
 
     # MoltenVK
     - name: Build MoltenVK (macOS)
@@ -376,14 +390,14 @@ jobs:
         include:
           - name: Windows x86
             os: windows-latest
-            toolchain: 1.77.0-x86_64-pc-windows-msvc # Last version to support Windows 7
+            toolchain: 1.86.0-x86_64-pc-windows-msvc
             target: i686-pc-windows-msvc
             ui: gui
             lib_name: piton-gui-win_x86.exe
 
           - name: Windows x64
             os: windows-latest
-            toolchain: 1.77.0-x86_64-pc-windows-msvc # Last version to support Windows 7
+            toolchain: 1.86.0-x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
             ui: gui
             lib_name: piton-gui-win_x64.exe
@@ -403,6 +417,13 @@ jobs:
             ui: gui
             lib_name: piton-gui-macos_x64
 
+          - name: macOS arm64
+            os: macos-latest
+            toolchain: 1.86.0-aarch64-apple-darwin
+            target: aarch64-apple-darwin
+            ui: gui
+            lib_name: piton-gui-macos_arm64
+
 
     name: Piton (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
@@ -415,8 +436,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        sparse-checkout: source/Piton
+        sparse-checkout: |
+          source/Piton
+          patches
         submodules: true
+
+    - name: Apply Piton patch
+      working-directory: source/Piton
+      run: git apply ../../patches/Piton_AppPath.patch
 
     - name: Setup environment variables
       run: |
@@ -468,7 +495,7 @@ jobs:
 
   generate-lib-ext:
     name: Generate lib-ext
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     needs: [build-fnalibs, build-piton, build-steamworks-net]
 
     steps:
@@ -526,6 +553,8 @@ jobs:
 
           # OSX
           cp source/Steamworks.NET/com.rlabrecque.steamworks.net/Plugins/steam_api.bundle/Contents/MacOS/libsteam_api.dylib ../lib-ext/lib64-osx
+          cp binaries/fmod/osx/libfmod.dylib ../lib-ext/lib64-osx
+          cp binaries/fmod/osx/libfmodstudio.dylib ../lib-ext/lib64-osx
 
           # Linux x64
           cp source/Steamworks.NET/com.rlabrecque.steamworks.net/Plugins/libsteam_api.so ../lib-ext/lib64-linux
@@ -570,7 +599,10 @@ jobs:
 
           cp ../binaries/discord_game_sdk/lib/x86/discord_game_sdk.dll lib64-win-x86
           cp ../binaries/discord_game_sdk/lib/x86_64/discord_game_sdk.dll lib64-win-x64
-          cp ../binaries/discord_game_sdk/lib/x86_64/discord_game_sdk.dylib lib64-osx/libdiscord_game_sdk.dylib
+          lipo -create \
+            ../binaries/discord_game_sdk/lib/x86_64/discord_game_sdk.dylib \
+            ../binaries/discord_game_sdk/lib/aarch64/discord_game_sdk.dylib \
+            -output lib64-osx/libdiscord_game_sdk.dylib
           cp ../binaries/discord_game_sdk/lib/x86_64/discord_game_sdk.so lib64-linux/libdiscord_game_sdk.so
 
           cp ../binaries/steamworks-net/x86/Windows/netstandard2.1/Steamworks.NET.dll lib64-win-x86
@@ -580,6 +612,11 @@ jobs:
 
           ### Piton
           mv ../binaries/piton-apphosts piton
+          lipo -create \
+            piton/piton-gui-macos_x64 \
+            piton/piton-gui-macos_arm64 \
+            -output piton/piton-gui-macos
+          rm piton/piton-gui-macos_x64 piton/piton-gui-macos_arm64
 
       - name: Display the new structure
         run: ls -R ../lib-ext
